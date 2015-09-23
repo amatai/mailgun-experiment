@@ -1,7 +1,13 @@
 
+import logging
 import pymongo
+import uuid
 from collections import Mapping
+from pymongo.errors import DuplicateKeyError
 from minimailgun.config import config
+
+
+log = logging.getLogger(__name__)
 
 
 class MongoStore(object):
@@ -51,7 +57,19 @@ class MongoStore(object):
         pass
 
     def add_mail(self, mail):
-        pass
+        result = None
+        for _ in range(2):
+            mail['_id'] = uuid.uuid4()
+            try:
+                result = self.db.messages.insert_one(mail)
+                break
+            except DuplicateKeyError:
+                continue
+        if not result:
+            raise UnablToAddMessageError('Multiple tries led to DuplicateKeyError. Unable to add message id: {id}'.format(
+                id=mail['_id']
+            ))
+        return self.db.messages.find_one({'_id': result.inserted_id})
 
     def get_mail_by_id(self, id):
         pass
@@ -61,5 +79,10 @@ class MongoStore(object):
 
     def update_mail(self, mail):
         pass
+
+
+class UnablToAddMessageError(Exception):
+    pass
+
 
 store = MongoStore(**config['store']['mongodb'])

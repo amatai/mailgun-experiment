@@ -1,9 +1,10 @@
 
 import os
+import itertools
 import traceback
+from datetime import datetime
 from flask import Flask, Blueprint, jsonify, request, abort, current_app
 from werkzeug.exceptions import default_exceptions, HTTPException
-from minimailgun.config import config
 from minimailgun.store import store
 
 
@@ -22,7 +23,24 @@ def create_mail():
         abort(400, 'The from address is required.')
     # other payload validation goes here.
     # insert the message in db
-    return jsonify({})
+    recipient_set = set(itertools.chain(
+        request_data.get('to', []),
+        request_data.get('cc', []),
+        request_data.get('bcc', [])
+    ))
+    if not recipient_set:
+        abort(400, 'Need at least one recipient for mail.')
+    request_data['created_at'] = datetime.utcnow()
+    request_data['recipients'] = [
+        {recipient.replace('.', '_'): {
+            'status': 'New',
+            'updated': request_data['created_at'],
+            'email': recipient
+        }} for recipient in recipient_set
+    ]
+    message = store.add_mail(request_data)
+    # trigger a task for it and pass message-id
+    return jsonify(message)
 
 
 @mailgun_api.route('/mail/<uuid:id>')
@@ -50,8 +68,7 @@ def create_mailgun_api(
         app_name=__name__,
         debug=None,
         JSONIFY_PRETTYPRINT_REGULAR=False,
-        JSON_AS_ASCII=False,
-    ):
+        JSON_AS_ASCII=False,):
     app = Flask(app_name)
     if debug is None:
         debug = bool(os.environ.get('MINI_MAILGUN_DEBUG'))

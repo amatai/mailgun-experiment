@@ -5,4 +5,3 @@ import yaml
 
 with open(join(dirname(__file__), 'config.yaml')) as config_file:
     config = yaml.load(config_file)
-
