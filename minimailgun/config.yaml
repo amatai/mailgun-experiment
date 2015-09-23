@@ -1,0 +1,20 @@
+store:
+  mongodb:
+    hosts:
+      localhost: 27017
+    username:
+    password:
+    ssl: false
+    database: minimailgun
+
+smtp_server:
+  host:
+  port: 25
+
+
+api:
+  port: 5000
+
+celery:
+  broker_url: mongodb://localhost:27017/minimailgun
+
