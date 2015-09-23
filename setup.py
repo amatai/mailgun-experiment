@@ -14,7 +14,9 @@ setup(
         ],
     },
     install_requires=[
-        'flask'
+        'flask',
+        'pyyaml',
+        'pymongo',
     ],
     extras_require={
     },

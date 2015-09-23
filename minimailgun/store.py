@@ -21,7 +21,7 @@ class MongoStore(object):
         if not database:
             raise ValueError('database is required.')
 
-        self.url = 'mongodb://{auth}{hosts}/{database}{options}'.format(**locals())
+        self.url = 'mongodb://{auth}{hosts}/{database}'.format(**locals())
         self._database = database
         self._clear()
 

@@ -4,7 +4,6 @@ store:
       localhost: 27017
     username:
     password:
-    ssl: false
     database: minimailgun
 
 smtp_server:
