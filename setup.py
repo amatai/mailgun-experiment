@@ -9,9 +9,6 @@ setup(
     long_description=__doc__,
     packages=find_packages(exclude=['*.tests']),
     package_data={
-        '': [
-            '*.yaml',
-        ],
     },
     install_requires=[
         'flask',
@@ -20,12 +17,6 @@ setup(
     ],
     extras_require={
     },
-    test_suite='minimailgun.tests',
-    tests_require=[
-        'ddt',
-        'mock',
-        'mongomock',
-    ],
     verbose=False,
     entry_points={
     },
