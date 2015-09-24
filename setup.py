@@ -14,7 +14,8 @@ setup(
         'flask',
         'pyyaml',
         'pymongo==2.6.3',
-        'celery[mongodb]'
+        'celery[mongodb]',
+        'dnspython3',
     ],
     extras_require={
     },

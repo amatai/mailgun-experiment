@@ -1,4 +1,7 @@
 
+import dns.resolver
+import operator
+import socket
 from celery import Celery, group
 from celery.utils.log import get_task_logger
 from smtplib import SMTP, SMTPException
@@ -32,7 +35,22 @@ def sendmail(self, message, recipient):
         count=self.request.retries
     )
 
-    with SMTP(host=config['smtp_server']['host'], port=config['smtp_server']['port']) as smtp:
+    domain = rcpt.split('@')[-1]
+    try:
+        mx_records = dns.resolver.query(domain, 'MX')
+        mx_records = {rdata.exchange: rdata.preference for rdata in mx_records}
+        if not mx_records:
+            pass
+            # raise some exception if no records in the answer.
+    except Exception:
+        raise self.retry()
+
+    # sort by distance of MX record and use the 1st one (closest one)
+    mx_records = sorted(mx_records.items(), key=operator.itemgetter(1))
+    mx_host = str(mx_records[0][0])
+    mx_port = socket.getservbyname('smtp')
+    log.debug('MX Record: {} Port {}'.format(mx_host, mx_port))
+    with SMTP(host=mx_host, port=mx_port) as smtp:
         smtp.set_debuglevel(1)
         try:
             smtp.sendmail(message['from'], rcpt, message['message'])
