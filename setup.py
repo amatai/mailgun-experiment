@@ -13,7 +13,8 @@ setup(
     install_requires=[
         'flask',
         'pyyaml',
-        'pymongo',
+        'pymongo==2.6.3',
+        'celery[mongodb]'
     ],
     extras_require={
     },

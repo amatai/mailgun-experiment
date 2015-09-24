@@ -5,7 +5,9 @@ import traceback
 from datetime import datetime
 from flask import Flask, Blueprint, jsonify, request, abort, current_app
 from werkzeug.exceptions import default_exceptions, HTTPException
+
 from minimailgun.store import store
+from minimailgun.tasks import handle_new_message
 
 
 mailgun_api = Blueprint('mini-mailgun', __name__)
@@ -31,15 +33,16 @@ def create_mail():
     if not recipient_set:
         abort(400, 'Need at least one recipient for mail.')
     request_data['created_at'] = datetime.utcnow()
-    request_data['recipients'] = [
-        {recipient.replace('.', '_'): {
+    request_data['recipients'] = {
+        recipient.replace('.', '_'): {
             'status': 'New',
             'updated': request_data['created_at'],
             'email': recipient
-        }} for recipient in recipient_set
-    ]
+        } for recipient in recipient_set
+    }
     message = store.add_mail(request_data)
     # trigger a task for it and pass message-id
+    handle_new_message.delay(message['_id'])
     return jsonify(message)
 
 

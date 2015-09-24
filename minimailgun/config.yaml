@@ -6,14 +6,16 @@ store:
     password:
     database: minimailgun
 
-smtp_server:
-  host:
-  port: 25
+celery:
+  broker_url: mongodb://localhost:27017/minimailgun
 
+smtp_server:
+  host: smtp.mailguni.org
+  port: 25
 
 api:
   port: 5000
 
-celery:
-  broker_url: mongodb://localhost:27017/minimailgun
-
+mail_properties:
+  max_retry: 2
+  retry_time: 6

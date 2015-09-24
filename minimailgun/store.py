@@ -61,7 +61,7 @@ class MongoStore(object):
         for _ in range(2):
             mail['_id'] = uuid.uuid4()
             try:
-                result = self.db.messages.insert_one(mail)
+                result = self.db.mails.insert(mail)
                 break
             except DuplicateKeyError:
                 continue
@@ -69,10 +69,10 @@ class MongoStore(object):
             raise UnablToAddMessageError('Multiple tries led to DuplicateKeyError. Unable to add message id: {id}'.format(
                 id=mail['_id']
             ))
-        return self.db.messages.find_one({'_id': result.inserted_id})
+        return self.get_mail_by_id(result)
 
     def get_mail_by_id(self, id):
-        pass
+        return self.db.mails.find_one({'_id': id})
 
     def find_mail_to_send(self):
         pass
