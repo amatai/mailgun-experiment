@@ -14,4 +14,4 @@ api:
 
 mail_properties:
   max_retry: 2
-  retry_time: 6
+  retry_time: 600

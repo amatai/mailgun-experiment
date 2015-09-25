@@ -19,6 +19,11 @@ setup(
     ],
     extras_require={
     },
+    test_suite='minimailgun.tests',
+    tests_require=[
+        'mongomock',
+    ],
+
     verbose=False,
     entry_points={
     },
