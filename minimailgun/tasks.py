@@ -62,10 +62,12 @@ def sendmail(self, message, rcpt):
             smtp.set_debuglevel(0)
             result = smtp.sendmail(message['from'], rcpt, message['message'])
             status = result or 'Delivered'
-    except (Timeout, NoAnswer, NXDOMAIN, YXDOMAIN, NoNameservers, DNSLookupError) as exc:
+    except (NXDOMAIN, DNSLookupError) as exc:
+        status = 'Fatal DNS Error. No Retry ' + (str(exc) or str(type(exc)))
+    except (Timeout, NoAnswer, YXDOMAIN, NoNameservers) as exc:
         status = str(exc) or 'DNS Error ' + str(type(exc))
         raise self.retry()
-    except SMTPException as exc:
+    except (SMTPException, Exception) as exc:
         status = str(exc)
         raise self.retry()
     finally:
