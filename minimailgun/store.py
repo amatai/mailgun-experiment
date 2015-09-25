@@ -39,7 +39,6 @@ class MongoStore(object):
     def client(self):
         if not self._client:
             self._client = pymongo.MongoClient(self.url)
-            self.setup()
         return self._client
 
     @property
@@ -56,10 +55,6 @@ class MongoStore(object):
     def _clear(self):
         self._client = None
         self._db = None
-
-    def setup(self):
-        # TODO: setup indexing here
-        pass
 
     def add_mail(self, mail, recipient_set):
         mail['_created_at'] = datetime.utcnow()
