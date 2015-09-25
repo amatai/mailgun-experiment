@@ -9,10 +9,6 @@ store:
 celery:
   broker_url: mongodb://localhost:27017/minimailgun
 
-smtp_server:
-  host: smtp.mailguni.org
-  port: 25
-
 api:
   port: 5000
 

@@ -2,11 +2,10 @@
 import os
 import itertools
 import traceback
-from datetime import datetime
 from flask import Flask, Blueprint, jsonify, request, abort, current_app
 from werkzeug.exceptions import default_exceptions, HTTPException
 
-from minimailgun.store import store
+from minimailgun.store import store, MailLookupError, UnablToAddMessageError
 from minimailgun.tasks import handle_new_message
 
 
@@ -24,7 +23,7 @@ def create_mail():
     if not request_data.get('from'):
         abort(400, 'The from address is required.')
     # other payload validation goes here.
-    # insert the message in db
+
     recipient_set = set(itertools.chain(
         request_data.get('to', []),
         request_data.get('cc', []),
@@ -32,15 +31,9 @@ def create_mail():
     ))
     if not recipient_set:
         abort(400, 'Need at least one recipient for mail.')
-    request_data['created_at'] = datetime.utcnow()
-    request_data['recipients'] = {
-        recipient.replace('.', '_'): {
-            'status': 'New',
-            'updated': request_data['created_at'],
-            'email': recipient
-        } for recipient in recipient_set
-    }
-    message = store.add_mail(request_data)
+
+    # insert the message in db
+    message = store.add_mail(request_data, recipient_set)
     # trigger a task for it and pass message-id
     handle_new_message.delay(message['_id'])
     return jsonify(message)
@@ -48,7 +41,20 @@ def create_mail():
 
 @mailgun_api.route('/mail/<uuid:id>')
 def get_mail_status(id):
-    return jsonify({'id': id})
+    message = store.get_mail_by_id(id)
+    return jsonify(message)
+
+
+@mailgun_api.errorhandler(MailLookupError)
+def handle_mail_lookup_error(exc):
+    current_app.logger.info(str(exc))
+    abort(404, str(exc))
+
+
+@mailgun_api.errorhandler(UnablToAddMessageError)
+def handle_unable_to_add(exc):
+    current_app.logger.warn('Unable to add mail to DB. Exception: {}'.format(exc))
+    abort(500, str(exc))
 
 
 def make_json_error(exc):

@@ -3,6 +3,7 @@ import logging
 import pymongo
 import uuid
 from collections import Mapping
+from datetime import datetime
 from pymongo.errors import DuplicateKeyError
 from minimailgun.config import config
 
@@ -54,14 +55,29 @@ class MongoStore(object):
         self._db = None
 
     def setup(self):
+        # TODO: setup indexing here
         pass
 
-    def add_mail(self, mail):
+    def add_mail(self, mail, recipient_set):
+        mail['_created_at'] = datetime.utcnow()
+        # create a recipient list and adjust the key, as bson docs
+        # don't allow key with a '.' in it.
+        mail['_recipients'] = {
+            self._sanitize_for_bson(recipient): {
+                'status': 'New',
+                'updated': mail['_created_at'],
+                'email': recipient
+            } for recipient in recipient_set
+        }
+
+        # add the message to db, with a unique UUID
+        # its going to be rare that we'll have UUID collision
+        # its going to be extremely rare that two consecutive collisions
         result = None
         for _ in range(2):
             mail['_id'] = uuid.uuid4()
             try:
-                result = self.db.mails.insert(mail)
+                result = self.db.mails.insert(mail, j=True)
                 break
             except DuplicateKeyError:
                 continue
@@ -72,16 +88,30 @@ class MongoStore(object):
         return self.get_mail_by_id(result)
 
     def get_mail_by_id(self, id):
-        return self.db.mails.find_one({'_id': id})
+        mail = self.db.mails.find_one({'_id': id})
+        if not mail:
+            raise MailLookupError('No mail with id: {id} found'.format(id=id))
+        return mail
 
-    def find_mail_to_send(self):
-        pass
+    def update_status(self, id, rcpt, status):
+        rcpt = self._sanitize_for_bson(rcpt)
+        update_key = '_recipients.' + rcpt + '.'
+        self.db.mails.find_and_modify(
+            query={'_id': id},
+            update={'$set': {update_key + 'status': status, update_key + 'updated': datetime.utcnow()}},
+            upsert=False,
+            full_response=False,
+        )
 
-    def update_mail(self, mail):
-        pass
+    def _sanitize_for_bson(self, email):
+        return email.replace('.', '_')
 
 
 class UnablToAddMessageError(Exception):
+    pass
+
+
+class MailLookupError(LookupError):
     pass
 
 
