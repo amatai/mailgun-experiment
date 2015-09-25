@@ -77,3 +77,92 @@ In another terminal start celery by
 ```bash
 celery worker -A minimailgun.tasks -l INFO
 ```
+
+REST API
+========
+
+Create a mail
+--------------
+
+POST a JSON payload to `/mail` route will create a mail
+
+```bash
+curl -X POST -H 'Content-Type:application/json' -H 'Accept:application/json' -d '{
+  "from": "sender@sendingplace.com",
+  "to": ["foo@example1.com", "foobar@somewhere.com", "foobaz@elsewhere.com"],
+  "message": "To: Joe Black<foobaz@elsewehre.com>\r\nSubject: Hello World\r\nDate: Jan 01, 2020\r\nHello Joe,\r\nThis is a very important message from BabyGun.\r\n"
+}' http://localhost:5000/mail
+```
+
+This will return a response something like:
+```bash
+{
+    "_created_at": "Fri, 25 Sep 2015 05:42:01 GMT",
+    "_id": "9d861b06-f608-4239-b3e9-4fe311ce6c05",
+    "_recipients": {
+        "foo@example1_com": {
+            "email": "foo@example1.com",
+            "status": "New",
+            "updated": "Fri, 25 Sep 2015 05:42:01 GMT"
+        },
+        "foobar@somewhere_com": {
+            "email": "foobar@somewhere.com",
+            "status": "New",
+            "updated": "Fri, 25 Sep 2015 05:42:01 GMT"
+        },
+        "foobaz@elsewhere_com": {
+            "email": "foobaz@elsewhere.com",
+            "status": "New",
+            "updated": "Fri, 25 Sep 2015 05:42:01 GMT"
+        }
+    },
+    "from": "sender@sendingplace.com",
+    "message": "To: Joe Black<foobaz@elsewehre.com>\r\nSubject: Hello World\r\nDate: Jan 01, 2020\r\nHello Joe,\r\nThis is a very important message from BabyGun.\r\n",
+    "to": [
+        "foo@example1.com",
+        "foobar@somewhere.com",
+        "foobaz@elsewhere.com"
+    ]
+}
+```
+
+Get the status of message
+-------------------------
+
+GET Call
+
+```bash
+curl -X GET -H 'Accept:application/json' http://localhost:5000/mail/9d861b06-f608-4239-b3e9-4fe311ce6c05
+```
+
+Response
+```bash
+{
+    "_created_at": "Fri, 25 Sep 2015 06:02:54 GMT",
+    "_id": "9d861b06-f608-4239-b3e9-4fe311ce6c05",
+    "_recipients": {
+        "foo@example1_com": {
+            "email": "foo@example1.com",
+            "status": "Delivered",
+            "updated": "Fri, 25 Sep 2015 06:02:56 GMT"
+        },
+        "foobar@somewhere_com": {
+            "email": "foobar@somewhere.com",
+            "status": "Fatal DNS Error. No Retry <class 'dns.resolver.NXDOMAIN'>",
+            "updated": "Fri, 25 Sep 2015 06:02:56 GMT"
+        },
+        "foobaz@elsewhere_com": {
+            "email": "foobaz@elsewhere.com",
+            "status": "New",
+            "updated": "Fri, 25 Sep 2015 06:02:56 GMT"
+        },
+    },
+    "from": "sender@sendingplace.com",
+    "message": "To: Joe Black<foobaz@elsewehre.com>\r\nSubject: Hello World\r\nDate: Jan 01, 2020\r\nHello Joe,\r\nThis is a very important message from BabyGun.\r\n",
+    "to": [
+        "foo@example1.com",
+        "foobar@somewhere.com",
+        "foobaz@elsewhere.com"
+    ]
+}
+```
