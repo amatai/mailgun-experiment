@@ -1,3 +1,6 @@
+"""
+Implement the Flask API
+"""
 
 import os
 import itertools

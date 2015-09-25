@@ -1,3 +1,6 @@
+"""
+Implements Celery interface and tasks that celery can execute.
+"""
 
 import dns.resolver
 import operator
@@ -33,11 +36,6 @@ def handle_new_message(id):
     max_retries=config['mail_properties']['max_retry']
 )
 def sendmail(self, message, rcpt):
-    log_message = 'MailID:{id} to:{rcpt} Try#:{count} Status:'.format(
-        rcpt=rcpt,
-        id=message['_id'],
-        count=self.request.retries,
-    )
 
     status = None
     domain = rcpt.split('@')[-1]
@@ -71,6 +69,10 @@ def sendmail(self, message, rcpt):
         status = str(exc)
         raise self.retry()
     finally:
-        log_message += status
-        log.info(log_message)
+        log.info('MailID:{id} to:{rcpt} Try#:{count} Status:{status}'.format(
+            rcpt=rcpt,
+            id=message['_id'],
+            count=self.request.retries,
+            status=status
+        ))
         store.update_status(message['_id'], rcpt, status)

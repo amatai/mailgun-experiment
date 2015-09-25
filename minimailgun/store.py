@@ -1,3 +1,6 @@
+"""
+Store implements interface to MongoDB interaction for adding, updating mails.
+"""
 
 import logging
 import pymongo
