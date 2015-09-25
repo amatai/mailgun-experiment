@@ -60,13 +60,17 @@ and activate the virtualenv in both of them.
 Running the API
 ---------------
 
-In one terminal run this command
+In one terminal run this command, the web-service will start on port 5000
 
 ```bash
 python minimailgun/api.py
 ```
 
-The web-service runs on port 5000
+To enable the service auto-reloading on change of code, set the environment variable `MINI_MAILGUN_DEBUG` to any value
+
+```bash
+export MINI_MAILGUN_DEBUG=1
+```
 
 
 Running Celery Worker Pool
@@ -77,6 +81,16 @@ In another terminal start celery by
 ```bash
 celery worker -A minimailgun.tasks -l INFO
 ```
+
+Running Unit tests
+------------------
+
+Run unit-test with this command
+
+```bash
+python setup.py test
+```
+
 
 REST API
 ========
