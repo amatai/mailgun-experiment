@@ -88,7 +88,7 @@ class MongoStore(object):
             raise UnablToAddMessageError('Multiple tries led to DuplicateKeyError. Unable to add message id: {id}'.format(
                 id=mail['_id']
             ))
-        return self.get_mail_by_id(result)
+        return mail
 
     def get_mail_by_id(self, id):
         mail = self.db.mails.find_one({'_id': id})
