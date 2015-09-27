@@ -36,26 +36,21 @@ def handle_new_message(id):
     max_retries=config['mail_properties']['max_retry']
 )
 def sendmail(self, message, rcpt):
+    '''
+    Send a message to give email address
+    :param message: The message to deliver
+    :param rcpt: Email address to which message is to be delivered
+    :return: None
 
+    Does MX lookup
+    Delivers email to preferred MX server
+    If any failure happens, it retries for upto the configured number of times.
+    After each attempt it updates the status for this recipient in the message.
+    '''
     status = None
-    domain = rcpt.split('@')[-1]
     try:
-        mx_records = dns.resolver.query(domain, 'MX')
-        mx_records = {rdata.exchange: rdata.preference for rdata in mx_records}
-        if not mx_records:
-            status = 'No MX records found for {domain}'.format(**locals())
-            raise DNSLookupError(status)
-
-        # sort by distance of MX record and use the 1st one (closest one)
-        mx_records = sorted(mx_records.items(), key=operator.itemgetter(1))
-        mx_host = str(mx_records[0][0])
+        mx_host = lookup_mx_record(rcpt)
         mx_port = socket.getservbyname('smtp')
-        log.debug('MailID:{id} to:{rcpt} Try#:{count} Using MX:{host}'.format(
-            id=message['_id'],
-            rcpt=rcpt,
-            count=self.request.retries,
-            host=mx_host,
-        ))
         with SMTP(host=mx_host, port=mx_port) as smtp:
             smtp.set_debuglevel(0)
             result = smtp.sendmail(message['from'], rcpt, message['message'])
@@ -76,3 +71,30 @@ def sendmail(self, message, rcpt):
             status=status
         ))
         store.update_status(message['_id'], rcpt, status)
+
+
+def lookup_mx_record(email):
+    '''
+    Do a MX lookup for the domain the provided email belongs to.
+    Return the closet MX host name.
+    :param email: The email address for which MX record is to be looked up
+    :return: hostname for the closes MX server
+
+    Can raise variable exceptions
+    DNXLookupError - if nameserver returns no MX servers
+    NXDOMAIN - non-existent domain
+    Timeout - if look up timesout
+    NoAnswer - if no answer received from DNS server.
+    NoNameservers - If no name servers are reachable/configured
+    '''
+    domain = email.split('@')[-1]
+    mx_records = dns.resolver.query(domain, 'MX')
+    mx_records = {rdata.exchange: rdata.preference for rdata in mx_records}
+    if not mx_records:
+        status = 'No MX records found for {domain}'.format(**locals())
+        raise DNSLookupError(status)
+
+    # sort by distance of MX record and use the 1st one (closest one)
+    mx_records = sorted(mx_records.items(), key=operator.itemgetter(1))
+    mx_host = str(mx_records[0][0])
+    return mx_host
