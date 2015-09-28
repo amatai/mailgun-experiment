@@ -5,6 +5,8 @@ Implement the Flask API
 import os
 import itertools
 import traceback
+from functools import wraps
+
 from flask import Flask, Blueprint, jsonify, request, abort, current_app
 from werkzeug.exceptions import default_exceptions, HTTPException
 
@@ -12,16 +14,32 @@ from minimailgun.store import store, MailLookupError, UnablToAddMessageError
 from minimailgun.tasks import handle_new_message
 
 
+class validate_mimetype(object):
+    def __call__(self, func):
+        self.func = func
+
+        @wraps(func)
+        def _(*args, **kwargs):
+            return self.wrapper(*args, **kwargs)
+
+        return _
+
+    def wrapper(self, *args, **kwargs):
+        if request.content_type not in ('application/json', None, ''):
+            abort(415, 'This api does not support content-type {mime}. Accepted mime-type: application/json'.format(
+                  mime=request.mimetype))
+        if not request.accept_mimetypes.accept_json:
+            abort(406, 'This api only responds in application/json')
+
+        return self.func(*args, **kwargs)
+
+
 mailgun_api = Blueprint('mini-mailgun', __name__)
 
 
 @mailgun_api.route('/mail', methods=['POST'])
+@validate_mimetype()
 def create_mail():
-    if request.content_type != 'application/json':
-        abort(415, 'This api does not support content-type {mime}. Accepted mime-type: application/json'.format(
-            mime=request.mimetype))
-    if not request.accept_mimetypes.accept_json:
-        abort(406, 'This api only responds in application/json')
     request_data = request.get_json()
     if not request_data.get('from'):
         abort(400, 'The from address is required.')
@@ -43,6 +61,7 @@ def create_mail():
 
 
 @mailgun_api.route('/mail/<uuid:id>')
+@validate_mimetype()
 def get_mail_status(id):
     message = store.get_mail_by_id(id)
     return jsonify(message)
