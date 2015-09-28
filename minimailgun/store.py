@@ -2,6 +2,7 @@
 Store implements interface to MongoDB interaction for adding, updating mails.
 """
 
+import hashlib
 import logging
 import pymongo
 import uuid
@@ -61,7 +62,7 @@ class MongoStore(object):
         # create a recipient list and adjust the key, as bson docs
         # don't allow key with a '.' in it.
         mail['_recipients'] = {
-            self._sanitize_for_bson(recipient): {
+            str(uuid.uuid4()): {
                 'status': 'New',
                 'updated': mail['_created_at'],
                 'email': recipient
@@ -91,18 +92,14 @@ class MongoStore(object):
             raise MailLookupError('No mail with id: {id} found'.format(id=id))
         return mail
 
-    def update_status(self, id, rcpt, status):
-        rcpt = self._sanitize_for_bson(rcpt)
-        update_key = '_recipients.' + rcpt + '.'
+    def update_status(self, id, rcpt_id, status):
+        update_key = '_recipients.' + rcpt_id + '.'
         self.db.mails.update(
             {'_id': id},
             {'$set': {update_key + 'status': status, update_key + 'updated': datetime.utcnow()}},
             upsert=False,
             j=True,
         )
-
-    def _sanitize_for_bson(self, email):
-        return email.replace('.', '_')
 
 
 class UnablToAddMessageError(Exception):

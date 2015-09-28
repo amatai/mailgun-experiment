@@ -25,7 +25,7 @@ class DNSLookupError(LookupError):
 @celery.task(ignore_result=True)
 def handle_new_message(id):
     message = store.get_mail_by_id(id)
-    sendmail_jobs = group(sendmail.si(message, value['email']) for recipient, value in message['_recipients'].items())
+    sendmail_jobs = group(sendmail.si(message, rcpt_id) for rcpt_id in message['_recipients'].keys())
     sendmail_jobs()
 
 
@@ -35,11 +35,11 @@ def handle_new_message(id):
     default_retry_delay=config['mail_properties']['retry_time'],
     max_retries=config['mail_properties']['max_retry']
 )
-def sendmail(self, message, rcpt):
+def sendmail(self, message, rcpt_id):
     '''
     Send a message to give email address
     :param message: The message to deliver
-    :param rcpt: Email address to which message is to be delivered
+    :param rcpt_id: Recipient id in the message we are handling.
     :return: None
 
     Does MX lookup
@@ -48,6 +48,7 @@ def sendmail(self, message, rcpt):
     After each attempt it updates the status for this recipient in the message.
     '''
     status = None
+    rcpt = message['_recipients'][rcpt_id]['email']
     try:
         mx_host = lookup_mx_record(rcpt)
         mx_port = socket.getservbyname('smtp')
@@ -70,7 +71,7 @@ def sendmail(self, message, rcpt):
             count=self.request.retries,
             status=status
         ))
-        store.update_status(message['_id'], rcpt, status)
+        store.update_status(message['_id'], rcpt_id, status)
 
 
 def lookup_mx_record(email):
