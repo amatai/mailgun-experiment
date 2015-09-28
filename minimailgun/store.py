@@ -94,11 +94,11 @@ class MongoStore(object):
     def update_status(self, id, rcpt, status):
         rcpt = self._sanitize_for_bson(rcpt)
         update_key = '_recipients.' + rcpt + '.'
-        self.db.mails.find_and_modify(
-            query={'_id': id},
-            update={'$set': {update_key + 'status': status, update_key + 'updated': datetime.utcnow()}},
+        self.db.mails.update(
+            {'_id': id},
+            {'$set': {update_key + 'status': status, update_key + 'updated': datetime.utcnow()}},
             upsert=False,
-            full_response=False,
+            j=True,
         )
 
     def _sanitize_for_bson(self, email):

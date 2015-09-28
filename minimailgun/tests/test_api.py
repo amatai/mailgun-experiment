@@ -17,7 +17,7 @@ class TestMiniMailgunAPI(BaseTest):
 
     @patch.object(api.store, 'get_mail_by_id', side_effect=MailLookupError)
     def test_get_bad_uuid_404(self, get_mail_mock):
-        rv = self.client.get('/mail/{}'.format(uuid.uuid4()))
+        rv = self.client.get('/mail/{}'.format(uuid.uuid4()), headers={'Accept': 'application/json'})
         self.assertEqual(rv.status_code, 404)
 
     def test_post_content_type(self):
